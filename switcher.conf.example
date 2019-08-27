@@ -1,0 +1,16 @@
+# Example of a config file for switcher.py.
+
+#[name] is the name of the desktop profile. This is taken as argument by the program.
+#command = Command launched when this profile is run.
+#class = Window class used to find the correct window. Use "wmctrl -l -x" to find the correct value.
+#desktop = Numerical identifier of the target desktop. Running integer starting from zero.
+#fullscreen = Should the window be made fullscreen. Optional argument, eiher "yes" or "no". Defaults to "no".
+#timeout = Timeout in seconds for finding the window ID. Will produce an error if too small. Optional argument, defaults to "1.0".
+
+# Example entry for starting Mozilla Firefox.
+[firefox]
+command = firefox --new-window https://en.wikipedia.org/
+class = Navigator.firefox
+desktop = 0
+fullscreen = yes
+timeout = 2.0
