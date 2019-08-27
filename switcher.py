@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-# An utility to switch X11 desktops and launching programs.
+# An utility to switch X11 virtual desktops and launching programs.
 
 # Copyright 2019 Joonas Saario.
 # This program is licensed under the GNU GPL version 3 or any later version.
@@ -176,11 +176,13 @@ parameters = config[arguments.desktop]
 # Try to switch the desktop.
 try:
 	switch_desktop(parameters)
-except:
-	# TODO: Figure out how to catch the exception instance and extract the type and the comment (i.e. the last line printed) from it. This line should be logged. When that is finished, the code is ready!!!
-	print("What should I do here?")
-	raise Exception("I think it failed.")
-	#journal.send(msg)
+except Exception as exception:
+	# Get the values for the logged error message.
+	exception_type = type(exception).__name__
+	exception_message = str(exception)
+	# Log the message and exit with a non-zero exit code to denote an error.
+	journal.send("[switcher.py] %s: %s" %(exception_type, exception_message))
+	exit(1)
 
 # All done, exit.
 exit(0)
