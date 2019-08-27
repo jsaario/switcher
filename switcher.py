@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-# A tool for setting the desktops and launching programs.
+# An utility to switch X11 desktops and launching programs.
 
 # Copyright 2019 Joonas Saario.
 # This program is licensed under the GNU GPL version 3 or any later version.
@@ -10,13 +10,19 @@
 
 # argumentparser() handles the parsing of command line arguments neatly.
 from argparse import ArgumentParser as argumentparser
+# expanduser() returns the home directory of the user.
+from os.path import expanduser
 # configparser() is a neat way for reading and parsing config files.
 from configparser import ConfigParser as configparser
+# isfile() checks the existence of ordinary files.
+from os.path import isfile
 # popen() and run() allow to execute external programs within Python and capture their output.
 from subprocess import Popen as popen
 from subprocess import run
 # sleep() allows to halt the process for a specified amount of time.
 from time import sleep
+# journal class handles logging to systemd. Use journal.send(string) method to write to the systemd journal.
+from systemd import journal
 
 
 # Functions.
@@ -42,8 +48,8 @@ def get_identifier(pid, desktop, timeout=1.0):
 			break
 		sleep(interval)
 	else:
-		# TODO: This should raise an exception!
-		window_id = None
+		# No correct window identifier was found before the timeout was reached.
+		raise RuntimeError("No window ID found before the timeout was reached.")
 	return window_id
 
 # Returns a list of windows for the specified desktop.
@@ -144,17 +150,19 @@ def switch_desktop(parameters):
 # Create a parser for the command line arguments.
 argument_parser = argumentparser(description="Switches between different virtual desktops and starts designated software on demand.", allow_abbrev=False)
 argument_parser.add_argument("-d", "--desktop", type=str, help="Which desktop to switch to.", required=True)
-argument_parser.add_argument("--config", type=str, default="switcher.conf", help="Config file location.")
+argument_parser.add_argument("--config", type=str, default=expanduser("~")+"/.config/switcher.conf", help="Config file location.")
 # Parse the arguments.
 arguments = argument_parser.parse_args()
 
 # Create a parser for the config file.
 config = configparser()
-# TODO: Check that a config file exists!
-# Read the config file.
-config.read(arguments.config)
-
-# TODO: Open a log file.
+# Chech that the config file exists and read it.
+if isfile(arguments.config):
+	config.read(arguments.config)
+else:
+	argument_parser.print_usage()
+	print("error: Config file '%s' not found." %(arguments.config))
+	exit(1)
 
 # Check the arguments and the config.
 if arguments.desktop not in config.sections():
@@ -169,9 +177,10 @@ parameters = config[arguments.desktop]
 try:
 	switch_desktop(parameters)
 except:
-	# TODO: Figure out how to catch the exception instance and extract the type and the comment (i.e. the last line printed) from it. This line should be logged. When that is finished, the code is ready!!! Oh, don't forget that one "TODO" up on line 45ish!
+	# TODO: Figure out how to catch the exception instance and extract the type and the comment (i.e. the last line printed) from it. This line should be logged. When that is finished, the code is ready!!!
 	print("What should I do here?")
 	raise Exception("I think it failed.")
+	#journal.send(msg)
 
 # All done, exit.
 exit(0)
