@@ -148,8 +148,8 @@ def switch_desktop(parameters):
 # Main.
 
 # Create a parser for the command line arguments.
-argument_parser = argumentparser(description="Switches between different virtual desktops and starts designated software on demand.", allow_abbrev=False)
-argument_parser.add_argument("-d", "--desktop", type=str, help="Which desktop to switch to.", required=True)
+argument_parser = argumentparser(description="Switches between X11 virtual desktops and starts designated software on demand.", allow_abbrev=False)
+argument_parser.add_argument("-d", "--desktop", type=str, help="Name of the desktop to switch to, as in the config.", required=True)
 argument_parser.add_argument("--config", type=str, default=expanduser("~")+"/.config/switcher.conf", help="Config file location.")
 # Parse the arguments.
 arguments = argument_parser.parse_args()
@@ -162,13 +162,15 @@ if isfile(arguments.config):
 else:
 	argument_parser.print_usage()
 	print("error: Config file '%s' not found." %(arguments.config))
+	journal.send("[switcher.py] error: Config file '%s' not found." %(arguments.config))
 	exit(1)
 
 # Check the arguments and the config.
 if arguments.desktop not in config.sections():
-	print("error: Unsupported desktop given. Supported values are: '%s'." %("', '".join(config.sections())))
 	argument_parser.print_usage()
-	raise Exception()
+	print("error: Unsupported desktop given. Supported values are: '%s'." %("', '".join(config.sections())))
+	journal.send("[switcher.py] error: Unsupported desktop given. Supported values are: '%s'." %("', '".join(config.sections())))
+	exit(1)
 
 # Get the parameters for this instance from the config.
 parameters = config[arguments.desktop]
@@ -181,6 +183,7 @@ except Exception as exception:
 	exception_type = type(exception).__name__
 	exception_message = str(exception)
 	# Log the message and exit with a non-zero exit code to denote an error.
+	print("error: %s: %s" %(exception_type, exception_message))
 	journal.send("[switcher.py] %s: %s" %(exception_type, exception_message))
 	exit(1)
 
