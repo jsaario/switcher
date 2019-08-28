@@ -13,4 +13,4 @@ command = firefox --new-window https://en.wikipedia.org/
 class = Navigator.firefox
 desktop = 0
 fullscreen = yes
-timeout = 2.0
+timeout = 1.0
