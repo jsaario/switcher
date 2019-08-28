@@ -21,14 +21,19 @@ from subprocess import Popen as popen
 from subprocess import run
 # sleep() allows to halt the process for a specified amount of time.
 from time import sleep
-# journal class handles logging to systemd. Use journal.send(string) method to write to the systemd journal.
+# journal class handles logging to systemd. Use journal.send(message) method to write to the systemd journal.
 from systemd import journal
 
 
 # Functions.
 
 # Returns the window identifier of the launched process.
-def get_identifier(pid, desktop, timeout=1.0):
+# This uses both window PID and class for detecting the correct window.
+# PID is the primary reference, class is a handy backup for cases where the PID is either unknown or wrong.
+def get_identifier(desktop, window_pid=None, window_class=None, timeout=1.0):
+	# Check the input arguments.
+	if window_pid is None and window_class is None:
+		raise TypeError("Neither window PID nor class given to get_identifier().")
 	# Set the polling interval in seconds.
 	interval = 0.01
 	# Impose hard limits on the timeout.
@@ -41,9 +46,12 @@ def get_identifier(pid, desktop, timeout=1.0):
 	# Poll until the identifier can be found.
 	for i in range(timeout_count):
 		# Get the dictionary containing all windows on this desktop.
-		window_ids = get_window_ids(desktop)		
-		# Get the window id from the window list.
-		window_id = window_ids.get(pid, None)
+		window_pids, window_classes = get_window_info(desktop)
+		# Get the window ID first using the PID. If that fails, use the class.
+		window_id = window_pids.get(window_pid, None)
+		if not window_id:
+			window_id = window_classes.get(window_class, None)
+		# If window ID was found, break the loop. Else wait for the next iteration.
 		if window_id:
 			break
 		sleep(interval)
@@ -87,23 +95,26 @@ def get_windows(desktop):
 	# All done, return.
 	return windows
 
-# Returns a dictionary containing the PIDs and window IDs for the specified desktop.
-def get_window_ids(desktop):
+# Returns two dictionaries, one containing the PIDs and other the window classes on the specified desktop.
+def get_window_info(desktop):
 	# Create the output.
-	window_ids = {}
+	window_pids = {}
+	window_classes = {}
 	# Get the list of windows for this desktop.
 	windows = get_windows(desktop)
 	# Process the list.
 	for window in windows:
 		# Get the window id, the desktop and the pid.
 		window_id = window.get("id", None)
+		window_class = window.get("class", None)
 		window_pid = window.get("pid", None)
-		if window_id is None or window_pid is None:
+		if window_id is None or window_class is None or window_pid is None:
 			continue
 		# Add the values.
-		window_ids.update({window_pid: window_id})
+		window_pids.update({window_pid: window_id})
+		window_classes.update({window_class: window_id})
 	# All done, return.
-	return window_ids
+	return window_pids, window_classes
 
 # Switches to the desired desktop and launches the program assigned to the desktop.
 def switch_desktop(parameters):
@@ -118,7 +129,7 @@ def switch_desktop(parameters):
 		raise ValueError("One of the config keywords 'command', 'class' or 'desktop' is missing.")
 	# Split the command string into a list. Warning: This might be a source of bugs!
 	command_list = command.split()
-	# Swich to the right desktop.
+	# Switch to the correct desktop.
 	run(["wmctrl", "-s", str(desktop)], check="True")
 	# Check if the program is already running.
 	windows = get_windows(desktop)
@@ -137,7 +148,7 @@ def switch_desktop(parameters):
 			run(["wmctrl", "-c", window.get("id", None), "-i"], check="True")
 		# Start the program.
 		started_program = popen(command_list)
-		window_id = get_identifier(pid=started_program.pid, desktop=desktop, timeout=timeout)
+		window_id = get_identifier(desktop, window_pid=started_program.pid, window_class=window_class, timeout=timeout)
 	# Make the program fullscreen. "below" flag is also activated to prevent unwanted focus stealing.
 	if fullscreen:
 		run(["wmctrl", "-r", window_id, "-i", "-b", "add,fullscreen,below"], check="True")
