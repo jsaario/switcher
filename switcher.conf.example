@@ -5,7 +5,7 @@
 #class = Window class used to find the correct window. Use "wmctrl -l -x" to find the correct value.
 #desktop = Numerical identifier of the target desktop. Running integer starting from zero.
 #fullscreen = Should the window be made fullscreen. Optional argument, eiher "yes" or "no". Defaults to "no".
-#fullscreen = Should the window be activated when switching to the desktop. Optional argument, eiher "yes" or "no". Defaults to "no".
+#activate = Should the window be activated when switching to the desktop. Optional argument, eiher "yes" or "no". Defaults to "no".
 #timeout = Timeout in seconds for finding the window ID. Will produce an error if too small. Optional argument, defaults to "1.0".
 
 # Example entry for starting Mozilla Firefox.
