@@ -69,8 +69,7 @@ def get_identifier(desktop, window_pid=None, window_class=None, timeout=1.0):
 	return window_id
 
 # Returns a list of windows for the desktop given as parameter.
-# If desktop is not given, all real windows (i.e. desktop >= 0) are returned.
-def get_windows(desktop=None):
+def get_windows(desktop):
 	# Create the output.
 	windows = []
 	# Get the list of windows using wmctrl.
@@ -90,11 +89,7 @@ def get_windows(desktop=None):
 			window_title = " ".join(splitted_line[5:])
 		except (IndexError, ValueError):
 			continue
-		# Filter the desktops.
-		if desktop is None:
-			if window_desktop < 0:
-				continue
-		elif not window_desktop == desktop:
+		if not window_desktop == desktop:
 			continue
 		# Append the values.
 		windows.append({
