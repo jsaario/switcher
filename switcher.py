@@ -58,6 +58,7 @@ def get_identifier(desktop, window_pid=None, window_class=None, timeout=1.0):
 	else:
 		# No correct window identifier was found before the timeout was reached.
 		raise RuntimeError("No window ID found before the timeout was reached.")
+	# All done, return.
 	return window_id
 
 # Returns a list of windows for the specified desktop.
@@ -157,7 +158,7 @@ def switch_desktop(parameters):
 	if activate:
 		run(["wmctrl", "-a", window_id, "-i"], check="True")
 	# All done, return.
-	return
+	return None
 
 # Communication and error handling routine. Prints and logs messages and exits if necessary.
 def communicate(message, print_message=True, log_message=True, quit=True, exit_code=1):
@@ -167,6 +168,8 @@ def communicate(message, print_message=True, log_message=True, quit=True, exit_c
 		journal.send("[switcher.py] " + message)
 	if quit:
 		exit(exit_code)
+	# All done, return.
+	return None
 
 
 # Main.
