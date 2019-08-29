@@ -159,7 +159,7 @@ def switch_desktop(parameters):
 	# All done, return.
 	return
 
-# Communication and error handling routine. Prints and logs messages
+# Communication and error handling routine. Prints and logs messages and exits if necessary.
 def communicate(message, print_message=True, log_message=True, quit=True, exit_code=1):
 	if print_message:
 		print(message)
