@@ -159,15 +159,35 @@ def switch_desktop(parameters):
 	# All done, return.
 	return
 
+# Communication and error handling routine. Prints and logs messages
+def communicate(message, print_message=True, log_message=True, quit=True, exit_code=1):
+	if print_message:
+		print(message)
+	if log_message:
+		journal.send("[switcher.py] " + message)
+	if quit:
+		exit(exit_code)
+
 
 # Main.
 
 # Create a parser for the command line arguments.
 argument_parser = argumentparser(description="Switches between X11 virtual desktops and starts designated software on demand.", allow_abbrev=False)
-argument_parser.add_argument("-d", "--desktop", type=str, help="Name of the desktop to switch to, as in the config.", required=True)
-argument_parser.add_argument("--config", type=str, default=expanduser("~")+"/.config/switcher.conf", help="Config file location.")
+argument_parser.add_argument("-d", "--desktop", type=str, help="Switch to desktop DESKTOP, as defined in the config.")
+argument_parser.add_argument("-q", "--quit", action="store_true", help="Close all windows in all desktops.")
+argument_parser.add_argument("--config", type=str, default=expanduser("~")+"/.config/switcher.conf", help="Set the config file location.")
 # Parse the arguments.
 arguments = argument_parser.parse_args()
+
+# Check the arguments.
+if not arguments.quit and arguments.desktop is None:
+	# Neither '--quit' nor '--desktop' given.
+	argument_parser.print_usage()
+	communicate("error: Either '--quit' or '--desktop' argument required.", quit=True)
+elif arguments.quit and arguments.desktop is not None:
+	# Both '--quit' and '--desktop' given, ignoring the latter.
+	argument_parser.print_usage()
+	communicate("warning: Both '--quit' and '--desktop' arguments given. Ignoring '--desktop'.", quit=False)
 
 # Create a parser for the config file.
 config = configparser()
@@ -176,16 +196,12 @@ if isfile(arguments.config):
 	config.read(arguments.config)
 else:
 	argument_parser.print_usage()
-	print("error: Config file '%s' not found." %(arguments.config))
-	journal.send("[switcher.py] error: Config file '%s' not found." %(arguments.config))
-	exit(1)
+	communicate("error: Config file '%s' not found." %(arguments.config), quit=True)
 
 # Check the arguments and the config.
 if arguments.desktop not in config.sections():
 	argument_parser.print_usage()
-	print("error: Unsupported desktop given. Supported values are: '%s'." %("', '".join(config.sections())))
-	journal.send("[switcher.py] error: Unsupported desktop given. Supported values are: '%s'." %("', '".join(config.sections())))
-	exit(1)
+	communicate("error: Unsupported desktop given. Supported values are: '%s'." %("', '".join(config.sections())), quit=True)
 
 # Get the parameters for this instance from the config.
 parameters = config[arguments.desktop]
@@ -198,9 +214,7 @@ except Exception as exception:
 	exception_type = type(exception).__name__
 	exception_message = str(exception)
 	# Log the message and exit with a non-zero exit code to denote an error.
-	print("error: %s: %s" %(exception_type, exception_message))
-	journal.send("[switcher.py] %s: %s" %(exception_type, exception_message))
-	exit(1)
+	communicate("%s: %s" %(exception_type, exception_message), quit=True)
 
 # All done, exit.
 exit(0)
