@@ -27,6 +27,13 @@ from systemd import journal
 
 # Functions.
 
+# Closes windows on the given list of windows.
+def close_windows(windows):
+	for window in windows:
+		run(["wmctrl", "-c", window.get("id", None), "-i"], check="True")
+	# All done, return.
+	return None
+
 # Returns the window identifier of the launched process.
 # This uses both window PID and class for detecting the correct window.
 # PID is the primary reference, class is a handy backup for cases where the PID is either unknown or wrong.
@@ -61,8 +68,9 @@ def get_identifier(desktop, window_pid=None, window_class=None, timeout=1.0):
 	# All done, return.
 	return window_id
 
-# Returns a list of windows for the specified desktop.
-def get_windows(desktop):
+# Returns a list of windows for the desktop given as parameter.
+# If desktop is not given, all real windows (i.e. desktop >= 0) are returned.
+def get_windows(desktop=None):
 	# Create the output.
 	windows = []
 	# Get the list of windows using wmctrl.
@@ -82,7 +90,11 @@ def get_windows(desktop):
 			window_title = " ".join(splitted_line[5:])
 		except (IndexError, ValueError):
 			continue
-		if not window_desktop == desktop:
+		# Filter the desktops.
+		if desktop is None:
+			if window_desktop < 0:
+				continue
+		elif not window_desktop == desktop:
 			continue
 		# Append the values.
 		windows.append({
@@ -146,8 +158,7 @@ def switch_desktop(parameters):
 	# If the program is not running, i.e. a window of the correct class is not found, close all other windows and start the program.
 	if not is_running:
 		# Close all other windows.
-		for window in windows:
-			run(["wmctrl", "-c", window.get("id", None), "-i"], check="True")
+		close_windows(windows)
 		# Start the program.
 		started_program = popen(command_list)
 		window_id = get_identifier(desktop, window_pid=started_program.pid, window_class=window_class, timeout=timeout)
@@ -201,23 +212,34 @@ else:
 	argument_parser.print_usage()
 	communicate("error: Config file '%s' not found." %(arguments.config), quit=True)
 
-# Check the arguments and the config.
-if arguments.desktop not in config.sections():
-	argument_parser.print_usage()
-	communicate("error: Unsupported desktop given. Supported values are: '%s'." %("', '".join(config.sections())), quit=True)
-
-# Get the parameters for this instance from the config.
-parameters = config[arguments.desktop]
-
-# Try to switch the desktop.
-try:
-	switch_desktop(parameters)
-except Exception as exception:
-	# Get the values for the logged error message.
-	exception_type = type(exception).__name__
-	exception_message = str(exception)
-	# Log the message and exit with a non-zero exit code to denote an error.
-	communicate("%s: %s" %(exception_type, exception_message), quit=True)
+# Check if the program should switch the desktop or close all windows.
+if arguments.quit:
+	# Try to close all windows.
+	try:
+		windows = get_windows()
+		close_windows(windows)
+	except Exception as exception:
+		# Get the values for the logged error message.
+		exception_type = type(exception).__name__
+		exception_message = str(exception)
+		# Log the message and exit with a non-zero exit code to denote an error.
+		communicate("%s: %s" %(exception_type, exception_message), quit=True)
+else:
+	# Check the arguments and the config.
+	if arguments.desktop not in config.sections():
+		argument_parser.print_usage()
+		communicate("error: Unsupported desktop given. Supported values are: '%s'." %("', '".join(config.sections())), quit=True)
+	# Get the parameters for this instance from the config.
+	parameters = config[arguments.desktop]
+	# Try to switch the desktop.
+	try:
+		switch_desktop(parameters)
+	except Exception as exception:
+		# Get the values for the logged error message.
+		exception_type = type(exception).__name__
+		exception_message = str(exception)
+		# Log the message and exit with a non-zero exit code to denote an error.
+		communicate("%s: %s" %(exception_type, exception_message), quit=True)
 
 # All done, exit.
 exit(0)
