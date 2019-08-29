@@ -123,6 +123,7 @@ def switch_desktop(parameters):
 	window_class = parameters.get("class", fallback=None)
 	desktop = parameters.getint("desktop", fallback=None)
 	fullscreen = parameters.getboolean("fullscreen", fallback=False)
+	activate = parameters.getboolean("activate", fallback=False)
 	timeout = parameters.getfloat("timeout", fallback=1.0)
 	# Check the values.
 	if command is None or window_class is None or desktop is None:
@@ -149,9 +150,12 @@ def switch_desktop(parameters):
 		# Start the program.
 		started_program = popen(command_list)
 		window_id = get_identifier(desktop, window_pid=started_program.pid, window_class=window_class, timeout=timeout)
-	# Make the program fullscreen. "below" flag is also activated to prevent unwanted focus stealing.
-	if fullscreen:
-		run(["wmctrl", "-r", window_id, "-i", "-b", "add,fullscreen,below"], check="True")
+		# Make the program fullscreen.
+		if fullscreen:
+			run(["wmctrl", "-r", window_id, "-i", "-b", "add,fullscreen"], check="True")
+	# Activate the window.
+	if activate:
+		run(["wmctrl", "-a", window_id, "-i"], check="True")
 	# All done, return.
 	return
 
